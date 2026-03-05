@@ -27,6 +27,7 @@ exports.signupPGOwner = async (req, res) => {
       email,
       phone,
       address,
+      gstNumber: 1 ,
       password: hashedPassword,
     });
 
