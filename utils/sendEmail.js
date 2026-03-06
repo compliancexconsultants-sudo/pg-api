@@ -14,23 +14,27 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = async (to, subject, html) => {
-  try {
+const sendEmail = async (to, subject, html, pdfBuffer = null) => {
+  const mailOptions = {
+    from: `"PGHub" <${process.env.MAIL_USER}>`,
+    to,
+    subject,
+    html,
+  };
 
-    const mailOptions = {
-      from: `"PGHub" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    console.log("Email sent successfully");
-
-  } catch (error) {
-    console.error("Email error:", error);
+  // Attach PDF if exists
+  if (pdfBuffer) {
+    mailOptions.attachments = [
+      {
+        filename: "PG_Payment_Receipt.pdf",
+        content: pdfBuffer,
+        contentType: "application/pdf",
+      },
+    ];
   }
+
+  await transporter.sendMail(mailOptions);
 };
 
 module.exports = sendEmail;
+

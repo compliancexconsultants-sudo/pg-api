@@ -31,6 +31,8 @@ app.use("/api/pg", require("./routes/pgRoutes"));
 app.use("/api/tenants", tenantRoutes);
 app.use("/api/rooms", require("./routes/roomRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
+app.use("/api/email", require("./routes/emailRoutes"));
+
 
 
 // MongoDB

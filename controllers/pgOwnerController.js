@@ -114,6 +114,7 @@ exports.signupPGOwner = async (req, res) => {
   }
 };
 
+
 exports.loginPGOwner = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -135,6 +136,9 @@ exports.loginPGOwner = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    // Get all PGs of this owner
+    const pgs = await PG.find({ ownerId: owner._id });
+
     // Create JWT
     const token = jwt.sign(
       { id: owner._id, email: owner.email },
@@ -150,7 +154,9 @@ exports.loginPGOwner = async (req, res) => {
         name: owner.name,
         email: owner.email,
       },
+      pgs,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
