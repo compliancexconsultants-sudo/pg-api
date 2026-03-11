@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, html, pdfBuffer = null) => {
   const mailOptions = {
-    from: `"PGHub" <${process.env.MAIL_USER}>`,
+    from: `"PGHub" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html,

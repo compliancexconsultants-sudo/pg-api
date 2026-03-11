@@ -4,6 +4,8 @@ const PG = require("../models/PG");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
+const QRCode = require("qrcode");
+const uploadToImgBB = require("../utils/uploadToImgBB");
 
 exports.signupPGOwner = async (req, res) => {
   try {
@@ -27,22 +29,47 @@ exports.signupPGOwner = async (req, res) => {
       email,
       phone,
       address,
-      gstNumber: 1 ,
+      gstNumber: 1,
       password: hashedPassword,
     });
 
     const savedOwner = await newOwner.save();
 
-    // Create PGs
-    if (pgs && pgs.length > 0) {
-      const pgData = pgs.map((pg) => ({
-        ownerId: savedOwner._id,
-        name: pg.name,
-        totalRooms: pg.totalRooms,
-        address: pg.address,
-      }));
+    let createdPGs = [];
+    let qrurldata
 
-      await PG.insertMany(pgData);
+    if (pgs && pgs.length > 0) {
+
+      for (const pg of pgs) {
+
+        // Step 1: Create PG first
+        const newPG = new PG({
+          ownerId: savedOwner._id,
+          name: pg.name,
+          totalRooms: pg.totalRooms,
+          address: pg.address
+        });
+
+        const savedPG = await newPG.save();
+
+        // Step 2: Create QR URL
+        const qrLink = `https://pghubform.netlify.app/?owner_id=${savedOwner._id}&pg_id=${savedPG._id}`;
+
+        // Step 3: Generate QR
+        const qrBase64 = await QRCode.toDataURL(qrLink);
+
+        const base64Image = qrBase64.replace(/^data:image\/png;base64,/, "");
+
+        // Step 4: Upload QR image
+        const qrUrl = await uploadToImgBB(base64Image);
+
+        // Step 5: Save QR URL in PG
+        savedPG.qrCode = qrUrl;
+        await savedPG.save();
+        qrurldata = qrUrl
+        createdPGs.push(savedPG);
+      }
+
     }
 
     await sendEmail(
@@ -72,6 +99,7 @@ exports.signupPGOwner = async (req, res) => {
 
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Password:</strong> ${password}</p>
+           <img src="${qrurldata}"/>
 
         </div>
 

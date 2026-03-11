@@ -7,7 +7,10 @@ const pgSchema = new mongoose.Schema({
   },
   name: String,
   totalRooms: Number,
-  address: String
+  address: String,
+  qrCode: {
+  type: String,
+}
 });
 
 module.exports = mongoose.model("PG", pgSchema);
