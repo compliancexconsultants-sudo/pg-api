@@ -4,6 +4,8 @@ const PGOwner = require("../models/PGOwner")
 const uploadToImgBB = require("../utils/uploadToImgBB")
 const sendMail = require("../utils/sendEmail")
 const fs = require("fs");
+const generateIdCard = require("../utils/generateIdCard")
+const generateApplicationForm = require("../utils/generateApplicationForm")
 
 const PG = require("../models/PG");
 
@@ -321,7 +323,7 @@ exports.getOwnerRequests = async (req, res) => {
         const { ownerId } = req.params
 
         const requests = await TenantRequest
-            .find({ ownerId })
+            .find({ ownerId, status: 'PENDING' })
             .sort({ createdAt: -1 })
 
         res.json({
@@ -379,56 +381,77 @@ exports.getRequest = async (req, res) => {
 APPROVE / REJECT REQUEST
 ========================= */
 
+
+
 exports.updateStatus = async (req, res) => {
 
     try {
 
-        const { status } = req.body
+        const { status, owner_id } = req.body;
+        const owner = await PGOwner.findById(owner_id)
 
         const request = await TenantRequest.findByIdAndUpdate(
-
             req.params.id,
             { status },
             { new: true }
+        );
 
-        )
+        if (!request) {
+            return res.status(404).json({ message: "Request not found" });
+        }
 
-        if (request) {
+        if (status === "APPROVED") {
 
-            /* notify tenant */
+            const pg = await PG.findById(request.pgId);
+
+            const pdfBuffer = await generateIdCard(request, pg.name);
+            const pdfOwnerBuffer = await generateApplicationForm(request, pg.name);
+
 
             await sendMail(
-
                 request.email,
-
-                `Tenant Request ${status}`,
-
+                "PG Check-In Approved",
                 `
-<h2>Your PG Request is ${status}</h2>
+        <h2>Your Check-in Request is Approved</h2>
+        <p>Your tenant ID card is attached below.</p>
+        `,
+                pdfBuffer
+            );
+            await sendMail(
+                owner.email,
+                "PG Check-In Approved",
+                `
+        <h2>${request.name} Check-in Request is Approved</h2>
+        <p>${request.name} Application form is attached below.</p>
+        `,
+                pdfOwnerBuffer
+            );
 
-<p>Owner has ${status.toLowerCase()} your request.</p>
-`
+        } else {
 
-            )
+            await sendMail(
+                request.email,
+                "PG Request Rejected",
+                `<h2>Your request has been rejected</h2>`
+            );
 
         }
 
         res.json({
-
             success: true,
             message: "Status updated",
             data: request
-
-        })
+        });
 
     } catch (err) {
 
-        res.status(500).json(err)
+        console.log(err);
+
+        res.status(500).json(err);
 
     }
 
-}
-
+};
 
 
 

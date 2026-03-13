@@ -27,7 +27,7 @@ const sendEmail = async (to, subject, html, pdfBuffer = null) => {
     mailOptions.attachments = [
       {
         filename: "PG_Payment_Receipt.pdf",
-        content: pdfBuffer,
+        content: Buffer.from(pdfBuffer),
         contentType: "application/pdf",
       },
     ];
