@@ -1,7 +1,7 @@
-// models/Room.js
+// models/Expense.js
 const mongoose = require("mongoose");
 
-const RoomSchema = new mongoose.Schema({
+const ExpenseSchema = new mongoose.Schema({
   owner_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -13,15 +13,11 @@ const RoomSchema = new mongoose.Schema({
     required: true
   },
 
-  room_number: String,
-  type: String,
-  capacity: Number,
-  rent_per_bed: Number,
-
-  status: {
-    type: String,
-    default: "vacant"
-  }
+  title: String,
+  amount: Number,
+  category: String,
+  expense_date: Date,
+  note: String
 }, { timestamps: true });
 
-module.exports = mongoose.model("Room", RoomSchema);
+module.exports = mongoose.model("Expense", ExpenseSchema);

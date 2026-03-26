@@ -12,11 +12,9 @@ const auth = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Attach user info to request
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-    };
+    // Cleaner for SaaS usage
+    req.owner_id = decoded.id;
+    req.user = decoded;
 
     next();
   } catch (err) {

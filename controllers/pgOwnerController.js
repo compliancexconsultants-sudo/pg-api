@@ -143,6 +143,8 @@ exports.signupPGOwner = async (req, res) => {
 };
 
 
+
+
 exports.loginPGOwner = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -164,24 +166,37 @@ exports.loginPGOwner = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Get all PGs of this owner
+    // Get PGs
     const pgs = await PG.find({ ownerId: owner._id });
 
-    // Create JWT
-    const token = jwt.sign(
+    // 🔥 ACCESS TOKEN (short life)
+    const accessToken = jwt.sign(
       { id: owner._id, email: owner.email },
       process.env.JWT_SECRET,
+      { expiresIn: "15m" } // short
+    );
+    console.log("🚀 ~ accessToken:", accessToken)
+
+    // 🔥 REFRESH TOKEN (long life)
+    const refreshToken = jwt.sign(
+      { id: owner._id },
+      process.env.REFRESH_SECRET,
       { expiresIn: "7d" }
     );
 
     res.status(200).json({
       message: "Login successful",
-      token,
+
+      // 🔥 IMPORTANT CHANGE
+      accessToken,
+      refreshToken,
+
       owner: {
         id: owner._id,
         name: owner.name,
         email: owner.email,
       },
+
       pgs,
     });
 
@@ -191,3 +206,39 @@ exports.loginPGOwner = async (req, res) => {
   }
 };
 
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "No refresh token" });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_SECRET
+    );
+
+    // 🔥 NEW ACCESS TOKEN
+    const newAccessToken = jwt.sign(
+      { id: decoded.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // 🔥 ROTATE REFRESH TOKEN (important)
+    const newRefreshToken = jwt.sign(
+      { id: decoded.id },
+      process.env.REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid refresh token" });
+  }
+};

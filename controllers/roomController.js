@@ -1,201 +1,193 @@
 const Room = require("../models/Room");
 const Tenant = require("../models/Tenant");
 
-/* ================= CREATE ROOM ================= */
-exports.createRoom = async (req, res) => {
+
+// ==============================
+// ➕ ADD ROOM
+// ==============================
+exports.addRoom = async (req, res) => {
   try {
-    const { roomNumber, roomType, monthlyRent, totalBeds } = req.body;
+    const { room_number, type, capacity, rent_per_bed, pg_id } = req.body;
 
-    const beds = Array.from({ length: totalBeds }).map((_, i) => ({
-      bedNumber: `B${i + 1}`,
-    }));
-
-    const room = await Room.create({
-      ownerId: req.user.id,
-      roomNumber,
-      roomType,
-      monthlyRent,
-      beds,
+    const room = new Room({
+      owner_id: req.owner_id,
+      pg_id,
+      room_number,
+      type,
+      capacity,
+      rent_per_bed
     });
 
-    res.status(201).json(room);
+    await room.save();
+
+    res.json({ success: true, data: room });
   } catch (err) {
-    res.status(500).json({ message: "Failed to create room" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= GET ALL ROOMS ================= */
-exports.getRooms = async (req, res) => {
+
+
+// ==============================
+// ✏️ UPDATE ROOM
+// ==============================
+exports.updateRoom = async (req, res) => {
   try {
-    const rooms = await Room.find({ ownerId: req.user.id })
-      .sort({ roomNumber: 1 });
+    const { id } = req.params;
 
-    const formatted = rooms.map((room) => {
-      const occupied = room.beds.filter((b) => b.isOccupied).length;
+    const room = await Room.findOneAndUpdate(
+      { _id: id, owner_id: req.owner_id },
+      req.body,
+      { new: true }
+    );
 
-      return {
-        _id: room._id,
-        roomNumber: room.roomNumber,
-        roomType: room.roomType,
-        totalBeds: room.beds.length,
-        vacantBeds: room.beds.length - occupied,
-        status: room.status,
-      };
-    });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
 
-    res.json(formatted);
+    res.json({ success: true, data: room });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch rooms" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= ROOM DETAILS ================= */
-/* ================= ROOM DETAILS ================= */
-exports.getRoomDetails = async (req, res) => {
+
+
+// ==============================
+// ❌ DELETE ROOM
+// ==============================
+exports.deleteRoom = async (req, res) => {
   try {
-    const room = await Room.findOne({
-      _id: req.params.id,
-      ownerId: req.user.id,
-    }).populate({
-      path: "beds.tenantId",
-      select:
-        "name contactnumber referenceContact rentStatus status userPhoto monthlyRent",
+    const { id } = req.params;
+
+    const room = await Room.findOneAndDelete({
+      _id: id,
+      owner_id: req.owner_id
     });
 
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    const totalBeds = room.beds.length;
-    const occupiedBeds = room.beds.filter((b) => b.isOccupied).length;
-
-    // 🔥 EXTRACT TENANTS FROM BEDS
-    const tenants = room.beds
-      .filter((b) => b.tenantId)
-      .map((b) => ({
-        _id: b.tenantId._id,
-        name: b.tenantId.name,
-        phone: b.tenantId.contactnumber,
-        referenceContact: b.tenantId.referenceContact,
-        rentStatus: b.tenantId.rentStatus,
-        status: b.tenantId.status,
-        monthlyRent: b.tenantId.monthlyRent,
-        bedNumber: b.bedNumber,
-        userPhoto: b.tenantId.userPhoto,
-      }));
-
-    res.json({
-      _id: room._id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      monthlyRent: room.monthlyRent,
-      status: room.status,
-
-      totalBeds,
-      occupiedBeds,
-      vacantBeds: totalBeds - occupiedBeds,
-
-      beds: room.beds,
-      tenants, // ✅ FINAL TENANTS ARRAY
-    });
+    res.json({ success: true, message: "Room deleted" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch room details" });
+    res.status(500).json({ error: err.message });
   }
 };
 
 
-/* ================= UPDATE ROOM ================= */
-exports.updateRoom = async (req, res) => {
+
+// ==============================
+// 👁️ GET SINGLE ROOM
+// ==============================
+exports.getRoom = async (req, res) => {
   try {
-    const room = await Room.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.id },
-      req.body,
-      { new: true }
-    );
-
-    res.json(room);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update room" });
-  }
-};
-
-/* ================= DELETE ROOM ================= */
-exports.deleteRoom = async (req, res) => {
-  try {
-    await Room.findOneAndDelete({
-      _id: req.params.id,
-      ownerId: req.user.id,
-    });
-
-    res.json({ message: "Room deleted" });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to delete room" });
-  }
-};
-
-/* ================= ASSIGN TENANT TO BED ================= */
-exports.assignTenantToBed = async (req, res) => {
-  try {
-    const { tenantId, bedNumber } = req.body;
+    const { id } = req.params;
 
     const room = await Room.findOne({
-      _id: req.params.roomId,
-      ownerId: req.user.id,
+      _id: id,
+      owner_id: req.owner_id
     });
 
-    const bed = room.beds.find((b) => b.bedNumber === bedNumber);
-
-    if (!bed || bed.isOccupied) {
-      return res.status(400).json({ message: "Bed not available" });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
     }
 
-    bed.isOccupied = true;
-    bed.tenantId = tenantId;
-
-    // update room status
-    const occupied = room.beds.filter((b) => b.isOccupied).length;
-    room.status =
-      occupied === room.beds.length
-        ? "OCCUPIED"
-        : "PARTIALLY_OCCUPIED";
-
-    await room.save();
-
-    // update tenant room info
-    await Tenant.findByIdAndUpdate(tenantId, {
-      roomNumber: room.roomNumber,
-      bedNumber,
+    // occupancy
+    const occupied = await Tenant.countDocuments({
+      room_id: room._id,
+      status: "active"
     });
 
-    res.json({ message: "Tenant assigned to bed" });
+    res.json({
+      ...room.toObject(),
+      occupied,
+      available: room.capacity - occupied
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to assign bed" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= VACATE BED ================= */
-exports.vacateBed = async (req, res) => {
-  try {
-    const { bedNumber } = req.body;
 
-    const room = await Room.findOne({
-      _id: req.params.roomId,
-      ownerId: req.user.id,
+
+// ==============================
+// 📋 LIST ROOMS (PAGINATION + SEARCH + OCCUPANCY)
+// ==============================
+exports.getRooms = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, pg_id } = req.query;
+
+    const rooms = await Room.find({
+      owner_id: req.owner_id,
+      pg_id,
     });
 
-    const bed = room.beds.find((b) => b.bedNumber === bedNumber);
+    const roomIds = rooms.map(r => r._id);
 
-    bed.isOccupied = false;
-    bed.tenantId = null;
+    const tenantCounts = await Tenant.aggregate([
+      {
+        $match: {
+          room_id: { $in: roomIds },
+          status: "active",
+        },
+      },
+      {
+        $group: {
+          _id: "$room_id",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
-    const occupied = room.beds.filter((b) => b.isOccupied).length;
-    room.status = occupied === 0 ? "VACANT" : "PARTIALLY_OCCUPIED";
+    const map = {};
+    tenantCounts.forEach(t => {
+      map[t._id] = t.count;
+    });
 
-    await room.save();
+    const result = rooms.map(r => ({
+      ...r.toObject(),
+      occupied_beds: map[r._id] || 0,
+    }));
 
-    res.json({ message: "Bed vacated successfully" });
+    res.json({
+      success: true,
+      data: result,
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to vacate bed" });
+    console.error("Get Rooms Error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.getRoomDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const room = await Room.findOne({
+      _id: id,
+      owner_id: req.owner_id,
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    const tenants = await Tenant.find({
+      room_id: id,
+      status: "active",
+    });
+
+    res.json({
+      success: true,
+      data: {
+        room,
+        tenants,
+      },
+    });
+
+  } catch (err) {
+    console.error("Room Detail Error:", err);
+    res.status(500).json({ message: err.message });
   }
 };

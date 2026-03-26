@@ -1,18 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const roomController = require("../controllers/roomController");
+
 const auth = require("../middleware/auth");
+const roomController = require("../controllers/roomController");
 
-// 🔐 Protected routes
-router.post("/", auth, roomController.createRoom);
-router.get("/", auth, roomController.getRooms);
-router.get("/:id", auth, roomController.getRoomDetails);
-
+router.post("/add", auth, roomController.addRoom);
 router.put("/:id", auth, roomController.updateRoom);
 router.delete("/:id", auth, roomController.deleteRoom);
-
-// 🛏 Bed / Tenant management
-router.post("/:roomId/assign-bed", auth, roomController.assignTenantToBed);
-router.post("/:roomId/vacate-bed", auth, roomController.vacateBed);
+router.get("/:id", auth, roomController.getRoomDetails);
+router.get("/", auth, roomController.getRooms);
 
 module.exports = router;
