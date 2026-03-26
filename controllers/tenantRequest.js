@@ -395,7 +395,11 @@ exports.updateStatus = async (req, res) => {
             { status },
             { new: true }
         );
-
+        res.json({
+            success: true,
+            message: "Status updated",
+            data: request
+        });
         if (!request) {
             return res.status(404).json({ message: "Request not found" });
         }
@@ -437,11 +441,7 @@ exports.updateStatus = async (req, res) => {
 
         }
 
-        res.json({
-            success: true,
-            message: "Status updated",
-            data: request
-        });
+
 
     } catch (err) {
 

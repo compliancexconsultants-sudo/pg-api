@@ -2,156 +2,241 @@ const puppeteer = require("puppeteer");
 
 const generateApplicationForm = async (tenant, pgName) => {
 
-const html = `
+    const html = `
 <html>
 <head>
-
 <style>
 
+@page {
+  size: A4;
+  margin: 20px;
+}
+
 body{
-font-family:Times New Roman;
-padding:40px;
-font-size:14px;
+  font-family: 'Times New Roman', serif;
+  font-size: 12px;
+  color:#222;
+  margin:0;
+  padding:0;
+}
+
+.container{
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  padding:20px;
+  border:1px solid #000;
+  position:relative;
+}
+
+/* HEADER */
+.header{
+  text-align:center;
+  margin-bottom:10px;
 }
 
 .title{
-text-align:center;
-font-weight:bold;
-font-size:20px;
+  font-size:18px;
+  font-weight:bold;
 }
 
 .subtitle{
-text-align:center;
-margin-bottom:30px;
+  font-size:12px;
+  color:#555;
 }
 
+/* PHOTO */
 .photo{
-position:absolute;
-right:60px;
-top:120px;
-width:120px;
-height:140px;
-border:1px solid black;
-text-align:center;
+  position:absolute;
+  right:20px;
+  top:20px;
+  width:90px;
+  height:110px;
+  border:1px solid #000;
 }
 
 .photo img{
-width:100%;
-height:100%;
-object-fit:cover;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
+/* ROWS */
 .row{
-margin:10px 0;
+  display:flex;
+  margin:5px 0;
 }
 
 .label{
-display:inline-block;
-width:200px;
-font-weight:bold;
+  width:180px;
+  font-weight:bold;
 }
 
+.value{
+  flex:1;
+  border-bottom:1px dotted #999;
+}
+
+/* SECTION */
+.section-title{
+  margin-top:12px;
+  font-weight:bold;
+  border-bottom:1px solid #000;
+  font-size:13px;
+}
+
+/* AADHAAR */
 .aadhaar{
-margin-top:30px;
+  text-align:center;
+  margin-top:8px;
 }
 
 .aadhaar img{
-width:300px;
-border:1px solid #000;
+  width:220px;
+  height:auto;
+  border:1px solid #000;
 }
 
+/* RULES */
 .rules{
-margin-top:20px;
+  margin-top:10px;
+  font-size:11px;
+}
+
+.rules ol{
+  padding-left:18px;
+  margin:5px 0;
 }
 
 .rules li{
-margin:3px 0;
+  margin:2px 0;
+}
+
+/* FOOTER */
+.footer{
+  margin-top:15px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.sign{
+  text-align:center;
+}
+
+.sign-line{
+  margin-top:25px;
+  border-top:1px solid #000;
+  width:140px;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<div class="title">Best PG Accommodation Application Form</div>
+<div class="container">
 
-<div class="subtitle">${pgName}</div>
+  <div class="header">
+    <div class="title">PG ACCOMMODATION APPLICATION FORM</div>
+    <div class="subtitle">${pgName}</div>
+  </div>
 
+  <div class="photo">
+    <img src="${tenant.passportPhoto}" />
+  </div>
 
-<div class="photo">
+  <div class="row"><div class="label">Full Name</div><div class="value">${tenant.name}</div></div>
+  <div class="row"><div class="label">Father's Name</div><div class="value">${tenant.fatherName || ""}</div></div>
+  <div class="row"><div class="label">Address</div><div class="value">${tenant.address}</div></div>
+  <div class="row"><div class="label">Guardian Address</div><div class="value">${tenant.occupationAddress}</div></div>
+  <div class="row"><div class="label">Joining Date</div><div class="value">${new Date().toLocaleDateString()}</div></div>
+  <div class="row"><div class="label">Mobile</div><div class="value">${tenant.phone}</div></div>
+  <div class="row"><div class="label">Father Contact</div><div class="value">${tenant.altPhone || ""}</div></div>
+  <div class="row"><div class="label">Email</div><div class="value">${tenant.email}</div></div>
 
-<img src="${tenant.passportPhoto}" />
+  <div class="section-title">Aadhaar Card</div>
+  <div class="aadhaar">
+    <img src="${tenant.aadhaarPhoto}" />
+  </div>
 
-</div>
+  <div class="section-title">Rules & Regulations</div>
+  <div class="rules">
+    <ol>
+      <li>Rent & deposit must be paid at joining.</li>
+      <li>Deposit refundable during vacating.</li>
+      <li>One month notice required.</li>
+      <li>Pay rent before 5th every month.</li>
+      <li>No heavy appliances allowed.</li>
+      <li>No alcohol or smoking.</li>
+      <li>Monthly rent system.</li>
+      <li>No refund after payment.</li>
+      <li>Management not responsible for belongings.</li>
+      <li>Management can terminate stay anytime.</li>
+    </ol>
+  </div>
 
+  <div class="footer">
+    <div class="sign">
+      <div class="sign-line"></div>
+      Tenant Signature
+    </div>
 
-<div class="row"><span class="label">Name:</span>${tenant.name}</div>
-
-<div class="row"><span class="label">Father Name:</span>${tenant.fatherName || ""}</div>
-
-<div class="row"><span class="label">Residential Address:</span>${tenant.address}</div>
-
-<div class="row"><span class="label">Local Guardian Address:</span>${tenant.occupationAddress}</div>
-
-<div class="row"><span class="label">Date Of Joining:</span>${new Date().toLocaleDateString()}</div>
-
-<div class="row"><span class="label">Mobile No:</span>${tenant.phone}</div>
-
-<div class="row"><span class="label">Father No:</span>${tenant.altPhone || ""}</div>
-
-<div class="row"><span class="label">Email:</span>${tenant.email}</div>
-
-
-<div class="aadhaar">
-
-<h3>Aadhaar Card</h3>
-
-<img src="${tenant.aadhaarPhoto}" />
-
-</div>
-
-
-<div class="rules">
-
-<h3 style="text-align:center">Rules & Regulations</h3>
-
-<ol>
-
-<li>Security deposit and rent must be paid at joining.</li>
-<li>Deposit will be refunded at the time of vacating.</li>
-<li>One month prior notice is required.</li>
-<li>Rent must be paid before the 5th of every month.</li>
-<li>Electrical appliances usage restricted.</li>
-<li>Alcohol and smoking strictly prohibited.</li>
-<li>Rent collected monthly basis.</li>
-<li>Rent once paid will not be refunded.</li>
-<li>Management not responsible for belongings.</li>
-<li>Management has right to terminate accommodation.</li>
-
-</ol>
+    <div class="sign">
+      <div class="sign-line"></div>
+      Authorized Signature
+    </div>
+  </div>
 
 </div>
 
 </body>
-
 </html>
 `;
 
-const browser = await puppeteer.launch({ headless: "new" });
+    const browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu"
+        ]
+    });
 
-const page = await browser.newPage();
+    const page = await browser.newPage();
 
-await page.setContent(html);
+    await page.setContent(html, {
+        waitUntil: "domcontentloaded",
+        timeout: 0
+    });
 
-const pdf = await page.pdf({
-format: "A4",
-printBackground: true
-});
+    // ✅ Ensure images load
+    await page.evaluate(async () => {
+        const images = Array.from(document.images);
+        await Promise.all(
+            images.map(img => {
+                if (img.complete) return;
+                return new Promise(resolve => {
+                    img.onload = img.onerror = resolve;
+                });
+            })
+        );
+    });
+    const pdf = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: true, // 🔥 important
+        margin: {
+            top: "10px",
+            bottom: "10px",
+            left: "10px",
+            right: "10px"
+        }
+    });
 
-await browser.close();
+    await browser.close();
 
-return pdf;
+    return pdf;
 
 };
 
